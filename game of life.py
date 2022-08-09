@@ -22,7 +22,6 @@ canvas = Canvas(root, width=WIDTH + 150, height=HEIGHT)
 canvas.pack()
 
 options = [True, False] * 10
-
 grid = [[False for x in range(side)] for i in range(round(side * 2 / 3))]
 
 gens = 0  # Number of generations passed
