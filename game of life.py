@@ -31,37 +31,24 @@ gens = 0  # Number of generations passed
 def tick():
     global grid, gens
     if not pause:
-        root.unbind("<Button 1>")
-        root.unbind("<space>")
+        canvas.unbind("<Button 1>")
+        canvas.unbind("<B1-Motion>")
         new_grid = deepcopy(grid)
         canvas.delete("all")
         for y in range(len(grid)):
             for x in range(len(grid[0])):
-                if y == 0 and x == 0:
-                    neighbours = [grid[y][x + 1], grid[y + 1][x + 1], grid[y + 1][x]]
-                elif y == 0 and x == len(grid[y]) - 1:
-                    neighbours = [grid[y + 1][x], grid[y + 1][x - 1], grid[y][x - 1]]
-                elif y == len(grid) - 1 and x == 0:
-                    neighbours = [grid[y - 1][x], grid[y - 1][x + 1], grid[y][x + 1]]
-                elif y == len(grid) - 1 and x == len(grid[y]) - 1:
-                    neighbours = [grid[y - 1][x - 1], grid[y - 1][x], grid[y][x - 1]]
-                elif y == 0:
-                    neighbours = [grid[y][x + 1], grid[y + 1][x + 1], grid[y + 1][x], grid[y + 1][x - 1],
-                                  grid[y][x - 1]]
-                elif y == len(grid) - 1:
-                    neighbours = [grid[y - 1][x - 1], grid[y - 1][x], grid[y - 1][x + 1], grid[y][x + 1],
-                                  grid[y][x - 1]]
-                elif x == 0:
-                    neighbours = [grid[y - 1][x], grid[y - 1][x + 1], grid[y][x + 1], grid[y + 1][x + 1],
-                                  grid[y + 1][x]]
-                elif x == len(grid[y]) - 1:
-                    neighbours = [grid[y - 1][x - 1], grid[y - 1][x], grid[y + 1][x], grid[y + 1][x - 1],
-                                  grid[y][x - 1]]
-                else:
-                    neighbours = [grid[y - 1][x - 1], grid[y - 1][x], grid[y - 1][x + 1], grid[y][x + 1],
-                                  grid[y + 1][x + 1],
-                                  grid[y + 1][x], grid[y + 1][x - 1], grid[y][x - 1]]
+                neighbours = []
 
+                # Find neighbours
+                for vy in range(-1, 2):
+                    for vx in range(-1, 2):
+                        if vy or vx:  # Skip the cell itself as it cannot be its own neighbour
+                            try:
+                                neighbours.append(grid[y + vy][x + vx])
+                            except IndexError:
+                                continue
+
+                # Apply the rules to the cell (find in README.md)
                 if not grid[y][x]:
                     if neighbours.count(True) == 3:
                         new_grid[y][x] = True
@@ -70,6 +57,7 @@ def tick():
                 else:
                     new_grid[y][x] = False
 
+                # Draw cell
                 if new_grid[y][x]:
                     canvas.create_rectangle(WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
                                             WIDTH / side * y + WIDTH / side, fill=ALIVE_COLOUR)
