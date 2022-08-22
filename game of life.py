@@ -23,47 +23,63 @@ canvas.pack()
 
 options = [True, False] * 10
 
-grid = [[False for x in range(side)] for i in range(round(side * 2 / 3))]
+grid = [[False for _ in range(side)] for __ in range(round(side * 2 / 3))]
 
 gens = 0  # Number of generations passed
+
+
+def find_neighbours(x, y):
+    neighbours = []
+
+    for vy in range(-1, 2):
+        for vx in range(-1, 2):
+            # Skip the cell itself as it cannot be its own neighbour
+            if (vy or vx) and y + vy > 0 and x + vx > 0:
+                try:
+                    neighbours.append(grid[y + vy][x + vx])
+                except IndexError:
+                    continue
+    return neighbours
+
+
+def cell_state(cell, neighbours):
+    """
+    Apply the rules to the cell (find in README.md)
+    """
+    if not cell:
+        if neighbours.count(True) == 3:
+            state = True
+        else:
+            state = False
+    elif neighbours.count(True) == 2 or neighbours.count(True) == 3:
+        state = True
+    else:
+        state = False
+    return state
+
+
+def draw_cell(x, y, state):
+    if state:
+        canvas.create_rectangle(WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
+                                WIDTH / side * y + WIDTH / side, fill=ALIVE_COLOUR)
+    else:
+        canvas.create_rectangle(WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
+                                WIDTH / side * y + WIDTH / side, fill=DEAD_COLOUR)
 
 
 def tick():
     global grid, gens
     if not pause:
-        canvas.unbind("<Button 1>")
-        canvas.unbind("<B1-Motion>")
         new_grid = deepcopy(grid)
         canvas.delete("all")
         for y in range(len(grid)):
             for x in range(len(grid[0])):
-                neighbours = []
 
-                # Find neighbours
-                for vy in range(-1, 2):
-                    for vx in range(-1, 2):
-                        if vy or vx:  # Skip the cell itself as it cannot be its own neighbour
-                            try:
-                                neighbours.append(grid[y + vy][x + vx])
-                            except IndexError:
-                                continue
+                neighbours = find_neighbours(x, y)
 
-                # Apply the rules to the cell (find in README.md)
-                if not grid[y][x]:
-                    if neighbours.count(True) == 3:
-                        new_grid[y][x] = True
-                elif neighbours.count(True) == 2 or neighbours.count(True) == 3:
-                    new_grid[y][x] = True
-                else:
-                    new_grid[y][x] = False
+                new_grid[y][x] = cell_state(grid[y][x], neighbours)
 
-                # Draw cell
-                if new_grid[y][x]:
-                    canvas.create_rectangle(WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
-                                            WIDTH / side * y + WIDTH / side, fill=ALIVE_COLOUR)
-                else:
-                    canvas.create_rectangle(WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
-                                            WIDTH / side * y + WIDTH / side, fill=DEAD_COLOUR)
+                draw_cell(x, y, new_grid[y][x])
 
         gens += 1
         generation_text.config(text=f"Generations {gens}")
@@ -75,12 +91,13 @@ def tick():
 
 def start():
     """
-    Start button pressed, simulation started
+    Start button pressed, simulation started.
     """
     global grid, pause
 
     pause = False
 
+    # Remove buttons
     start_button.place_forget()
     exit_button.place_forget()
     randomise.place_forget()
@@ -91,7 +108,9 @@ def start():
 
     pause_button.place(x=WIDTH + 37, y=55)
 
-    grid = [[] for i in range(round(2 / 3 * side))]
+    grid = [[] for _ in range(round(2 / 3 * side))]
+
+    # Modify grid after user changes
     ind = -1
     for i in coord:
         if coord.index(i) % side == 0:
@@ -100,12 +119,16 @@ def start():
             grid[ind].append(False)
         else:
             grid[ind].append(True)
+
+    canvas.unbind("<Button 1>")
+    canvas.unbind("<B1-Motion>")
+
     tick()
 
 
 def increase_speed():
     """
-    Decrease the interval between ticks
+    Decrease the interval between ticks.
     """
     global speed
     if speed != 50:
@@ -119,7 +142,7 @@ def increase_speed():
 
 def decrease_speed():
     """
-    Increase the interval between ticks
+    Increase the interval between ticks.
     """
     global speed
     if speed != 500:
@@ -154,40 +177,38 @@ def motion(event):
 
 def exit():
     """
-    Stops the program
+    Stops the program.
     """
     root.destroy()
 
 
-def display(board):
+def display(grid):
     """
-    Displays grid
+    Displays grid.
     """
     global coord
     coord = []
-    for y in range(len(board)):
-        for x in range(len(board[y])):
-            if board[y][x] is False:
-                canvas.create_rectangle(WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
-                                        WIDTH / side * y + WIDTH / side, fill=DEAD_COLOUR)
-                coord.append([WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
-                              WIDTH / side * y + WIDTH / side, DEAD_COLOUR])
-            else:
-                canvas.create_rectangle(WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
-                                        WIDTH / side * y + WIDTH / side, fill=ALIVE_COLOUR)
+    for y in range(len(grid)):
+        for x in range(len(grid[y])):
+            draw_cell(x, y, grid[y][x])
+
+            if grid[y][x]:
                 coord.append([WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
                               WIDTH / side * y + WIDTH / side, ALIVE_COLOUR])
+            else:
+                coord.append([WIDTH / side * x + 2, WIDTH / side * y + 2, WIDTH / side * x + WIDTH / side,
+                              WIDTH / side * y + WIDTH / side, DEAD_COLOUR])
 
 
-def randomise_board():
+def randomise_grid():
     global grid
-    grid = [[choice(options) for i in range(side)] for x in range(round(2 / 3 * side))]
+    grid = [[choice(options) for _ in range(side)] for __ in range(round(2 / 3 * side))]
     display(grid)
 
 
 def increase_frequency():
     """
-    Increases black/white frequency for randomising grid
+    Increases black/white frequency for randomising grid.
     """
     global frequency
     if round(frequency, 2) != 1:
@@ -201,7 +222,7 @@ def increase_frequency():
 
 def decrease_frequency():
     """
-    Decreases black/white frequency for randomising grid
+    Decreases black/white frequency for randomising grid.
     """
     global frequency
     if round(frequency, 2) != 0.05:
@@ -215,7 +236,7 @@ def decrease_frequency():
 
 def clear_grid():
     global grid
-    grid = [[False for x in range(side)] for i in range(round(side * 2 / 3))]
+    grid = [[False for _ in range(side)] for __ in range(round(side * 2 / 3))]
     display(grid)
 
 
@@ -252,7 +273,7 @@ pause_button = Button(root, text="Pause", font=(FONT, 12), bg="red", command=pau
 resume_button = Button(root, text="Resume", font=(FONT, 12), bg="green", command=resume, width=7, height=3)
 
 # Grid randomising button
-randomise = Button(root, text="Randomise!", font=(FONT, 12), bg="gold", command=randomise_board, width=9, height=1)
+randomise = Button(root, text="Randomise!", font=(FONT, 12), bg="gold", command=randomise_grid, width=9, height=1)
 randomise.place(x=WIDTH + 24, y=90)
 
 # Clear button
